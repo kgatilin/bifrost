@@ -104,3 +104,10 @@ func TestHeaderPatternFollowsThePrefix(t *testing.T) {
 		t.Errorf("%v", got)
 	}
 }
+
+// The server gives completed traces only to plugins it registers as LLM
+// plugins; without the hooks Inject is never called.
+var (
+	_ schemas.LLMPlugin           = (*Plugin)(nil)
+	_ schemas.ObservabilityPlugin = (*Plugin)(nil)
+)

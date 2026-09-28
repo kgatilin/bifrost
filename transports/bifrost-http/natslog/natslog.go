@@ -118,6 +118,18 @@ func (p *Plugin) Cleanup() error {
 	return nil
 }
 
+// The LLM hooks pass everything through. They are here because the server
+// hands completed traces only to plugins it registered as LLM (or MCP) plugins.
+func (p *Plugin) PreRequestHook(*schemas.BifrostContext, *schemas.BifrostRequest) error { return nil }
+
+func (p *Plugin) PreLLMHook(_ *schemas.BifrostContext, req *schemas.BifrostRequest) (*schemas.BifrostRequest, *schemas.LLMPluginShortCircuit, error) {
+	return req, nil, nil
+}
+
+func (p *Plugin) PostLLMHook(_ *schemas.BifrostContext, resp *schemas.BifrostResponse, err *schemas.BifrostError) (*schemas.BifrostResponse, *schemas.BifrostError, error) {
+	return resp, err, nil
+}
+
 // The plugin reads neither message content nor plugin spans, so the tracer
 // need not build them for it.
 func (p *Plugin) ConsumesContent() bool     { return false }
