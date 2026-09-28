@@ -1,0 +1,47 @@
+# Fork release: builds transports/Dockerfile (upstream's, unchanged) for
+# linux/arm64 on a native runner and pushes ghcr.io/<owner>/bifrost.
+# Trigger: push a tag fork/v<upstream-version>-<n>, e.g. fork/v2.2.3-1 ->
+# image tag 2.2.3-1. Upstream's own workflows are disabled in this fork.
+name: fork-release
+
+on:
+  push:
+    tags: ["fork/v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: image tag, e.g. 2.2.3-1
+        required: true
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  image:
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v4
+      - name: tag
+        id: tag
+        run: |
+          t="${{ inputs.tag }}"
+          [ -n "$t" ] || t="${GITHUB_REF_NAME#fork/v}"
+          echo "tag=$t" >> "$GITHUB_OUTPUT"
+          echo "version=${t%-*}" >> "$GITHUB_OUTPUT"
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: transports/Dockerfile
+          platforms: linux/arm64
+          build-args: VERSION=${{ steps.tag.outputs.version }}
+          push: true
+          tags: ghcr.io/${{ github.repository_owner }}/bifrost:${{ steps.tag.outputs.tag }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
