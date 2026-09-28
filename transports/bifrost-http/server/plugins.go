@@ -19,6 +19,7 @@ import (
 	"github.com/maximhq/bifrost/plugins/telemetry"
 	"github.com/maximhq/bifrost/transports/bifrost-http/handlers"
 	"github.com/maximhq/bifrost/transports/bifrost-http/lib"
+	"github.com/maximhq/bifrost/transports/bifrost-http/natslog"
 )
 
 // InferPluginTypes determines which interface types a plugin implements
@@ -145,6 +146,13 @@ func loadBuiltinPlugin(ctx context.Context, name string, pluginConfig any, bifro
 			return nil, fmt.Errorf("failed to marshal otel plugin config: %w", err)
 		}
 		return otel.Init(ctx, otelConfig, logger, bifrostConfig.ModelCatalog, handlers.GetVersion())
+
+	case natslog.PluginName:
+		natsConfig, err := MarshalPluginConfig[natslog.Config](pluginConfig)
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal natslog plugin config: %w", err)
+		}
+		return natslog.Init(natsConfig, logger)
 
 	case compat.PluginName:
 		compatConfig, err := MarshalPluginConfig[compat.Config](pluginConfig)
@@ -274,6 +282,15 @@ func (s *BifrostHTTPServer) loadBuiltinPlugins(ctx context.Context) error {
 		s.markPluginDisabled(otel.PluginName)
 	}
 	s.Config.SetPluginOrderInfo(otel.PluginName, builtinPlacement, schemas.Ptr(6))
+
+	// Fork: natslog (if configured in PluginConfigs) publishes each request to NATS.
+	natslogConfig := s.getPluginConfig(natslog.PluginName)
+	if natslogConfig != nil && natslogConfig.Enabled {
+		s.registerPluginWithStatus(ctx, natslog.PluginName, nil, natslogConfig.Config, false)
+	} else {
+		s.markPluginDisabled(natslog.PluginName)
+	}
+	s.Config.SetPluginOrderInfo(natslog.PluginName, builtinPlacement, schemas.Ptr(6))
 
 	// 7. Semantic Cache (if configured in PluginConfigs)
 	semanticCacheConfig := s.getPluginConfig(semanticcache.PluginName)

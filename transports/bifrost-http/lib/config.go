@@ -47,6 +47,7 @@ import (
 	"github.com/maximhq/bifrost/plugins/otel"
 	"github.com/maximhq/bifrost/plugins/prompts"
 	"github.com/maximhq/bifrost/plugins/routing"
+	"github.com/maximhq/bifrost/transports/bifrost-http/natslog"
 	"github.com/maximhq/bifrost/plugins/routing/complexity"
 	"github.com/maximhq/bifrost/plugins/routing/rules"
 	"github.com/maximhq/bifrost/plugins/semanticcache"
@@ -133,6 +134,7 @@ var builtinPluginNames = []string{
 	compat.PluginName,
 	maxim.PluginName,
 	routing.PluginName,
+	natslog.PluginName, // fork
 }
 
 func GetBuiltinPluginNames() []string {
